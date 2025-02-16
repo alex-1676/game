@@ -14,7 +14,7 @@ public class ChessGame {
     static int col = 0;
     static int moveRow = 0;
     static int moveCol = 0;
-    static boolean absolute = moveCol >= 0 && moveCol <= 7 && moveRow >= 0 && moveRow <= 7 && row >= 0 && row <= 7 && col >= 0 && col <= 7;
+
 
     public static void main(String[] args) {
         resetBoard();
@@ -83,6 +83,7 @@ public class ChessGame {
             moveRow = in.nextInt();
             System.out.print("열 : ");
             moveCol = in.nextInt();
+            boolean absolute = (moveCol >= 0 && moveCol <= 7 && moveRow >= 0 && moveRow <= 7 && row >= 0 && row <= 7 && col >= 0 && col <= 7);
             if (absolute) {
                 if (chessBoard[row][col].contains("♟") || chessBoard[row][col].contains("♙")) {
                     movePawn(row, col, moveRow, moveCol);
@@ -90,7 +91,11 @@ public class ChessGame {
                     moveRook(row, col, moveRow, moveCol);
                 }else if(chessBoard[row][col].contains("♘") || chessBoard[row][col].contains("♘")){
                     moveKnight(row, col, moveRow, moveCol);
+                }else if(chessBoard[row][col].contains("♗") || chessBoard[row][col].contains("♗")){
+                    moveBishop(row,col,moveRow,moveCol);
                 }
+            }else{
+                wrongMove();
             }
         } else {
             System.out.println("그 칸은 비어 있습니다.");
@@ -113,7 +118,7 @@ public class ChessGame {
                 // 첫 번째 이동에서만 2칸 전진
                 chessBoard[moveRow][moveCol] = chessBoard[row][col];
                 chessBoard[row][col] = "ㅡ";
-            } else if (chessBoard[moveRow][moveCol].contains(white) && absolute && moveCol >= col - 1 && moveCol <= col + 1) {
+            } else if (chessBoard[moveRow][moveCol].contains(white)  && moveCol >= col - 1 && moveCol <= col + 1) {
                 chessBoard[moveRow][moveCol] = chessBoard[row][col];
                 chessBoard[row][col] = "ㅡ";
             } else {
@@ -127,7 +132,7 @@ public class ChessGame {
             } else if (row == 6 && moveRow == row - 2 && moveCol == col && chessBoard[moveRow][moveCol].equals("ㅡ")) {
                 chessBoard[moveRow][moveCol] = chessBoard[row][col];
                 chessBoard[row][col] = "ㅡ";
-            } else if (chessBoard[moveRow][moveCol].contains(black) && absolute && moveCol != col && moveCol >= col - 1 && moveCol <= col + 1) {
+            } else if (chessBoard[moveRow][moveCol].contains(black) && moveCol != col && moveCol >= col - 1 && moveCol <= col + 1) {
                 chessBoard[moveRow][moveCol] = chessBoard[row][col];
                 chessBoard[row][col] = "ㅡ";
             } else {
@@ -137,13 +142,11 @@ public class ChessGame {
     }
 
     public static void moveRook(int row, int col, int moveRow, int moveCol) {
-        int blackCntRight = col;
-        int blackCntLeft = col;
-        int blackCntDown = row;
-        int blackCntUp = row;
-        boolean attackWhite = false;
-
-        if (chessBoard[row][col].contains(black + "♖") || chessBoard[row][col].contains(white + "♖")) { // 검정 룩
+        int blackCntRight = col; //black이름은 변경필요  / 오른쪽 가능길이
+        int blackCntLeft = col; //왼쪽 이동가능 길이
+        int blackCntDown = row; //아래 이동가능 길이
+        int blackCntUp = row;//외로 이동가능길이
+        if (chessBoard[row][col].contains(black + "♖") || chessBoard[row][col].contains(white + "♖")) {
             if (row == moveRow && col != moveCol) { // 가로 이동
                 for (int i = col + 1; i <= 7 && chessBoard[row][i].equals("ㅡ"); i++) {
                     blackCntRight++;
@@ -186,10 +189,94 @@ public class ChessGame {
         }
     }
     public static void  moveKnight(int row, int col, int moveRow, int moveCol){
-
+        if((moveRow==row+2 || moveRow == row-2) && (moveCol==col+1 || moveCol == col-1)){ //십자가 형태로 2번 이동후 양쪽으로1번 가능
+            if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                chessBoard[row][col] = "ㅡ";
+            }else{
+                whenBlackAttack();
+                whenWhiteAttack();
+            }
+        }else if((moveRow==row+1 || moveRow == row-1)&&(moveCol == col+2 || moveCol == col-1)){//십자가 형태로 1번 이동후 양쪽으로 2번가능
+            if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                chessBoard[row][col] = "ㅡ";
+            }else{
+                whenWhiteAttack();
+                whenBlackAttack();
+            }
+        }else {
+            wrongMove();
+        }
     }
+    public static void  moveBishop(int row, int col, int moveRow, int moveCol){
+        if(moveRow-row == moveCol-col ||row-moveRow == moveCol-col || moveRow-row ==col-moveCol){ //대각선으로만 가는 조건
+            int leftTop = 1;
+            int rightTop = 1;
+            int leftBottom = 1;
+            int rightBottom = 1;
+            boolean absolute = (moveCol >= 0 && moveCol <= 7 && moveRow >= 0 && moveRow <= 7 && row >= 0 && row <= 7 && col >= 0 && col <= 7);
 
+            if(moveRow>row && moveCol>col){
+                for (int i = row + 1, j = col + 1; i>=0 && j<=7 && absolute && chessBoard[i][j].equals("ㅡ"); i++, j++) {
+                    rightBottom++;
+                }
+            }
+            if(moveRow<row && moveCol < col){
+                for (int i = row - 1, j = col - 1; i >= 0 && j >=0 &&absolute && chessBoard[i][j].equals("ㅡ"); i--, j--) {
+                    leftTop++;
+                }
+            }
+            if(moveRow<row && moveCol > col){
+                for (int i = row - 1, j = col + 1; i >= 0 && j <= 7 && absolute && chessBoard[i][j].equals("ㅡ"); i--, j++) {
+                    rightTop++;
+                }
+            }
+            if(moveRow>row && moveCol < col){
+                for (int i = row + 1, j = col - 1; i <= 7 && j >= 0 && absolute && chessBoard[i][j].equals("ㅡ"); i++, j--) {
+                    leftBottom++;
+                }
+            }
 
+            if(moveRow>=row && moveCol>=col && moveRow<=rightBottom+row && moveCol<=rightBottom+col){
+                if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                    chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                    chessBoard[row][col] = "ㅡ";
+                }else{
+                    whenBlackAttack();
+                    whenWhiteAttack();
+                }
+            }else if(moveRow >= row && moveCol <= col && moveRow<=leftBottom+row && moveCol>=col-leftBottom){
+                if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                    chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                    chessBoard[row][col] = "ㅡ";
+                }else{
+                    whenBlackAttack();
+                    whenWhiteAttack();
+                }
+            }else if(moveRow<=row && moveCol >= col && moveRow>=row - rightTop && moveCol<=rightTop+col){
+                if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                    chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                    chessBoard[row][col] = "ㅡ";
+                }else{
+                    whenBlackAttack();
+                    whenWhiteAttack();
+                }
+            }else if(moveRow < row && moveCol < col && moveRow >= row-leftTop && moveCol>=col-leftTop){
+                if(chessBoard[moveRow][moveCol].equals("ㅡ")){
+                    chessBoard[moveRow][moveCol] = chessBoard[row][col];
+                    chessBoard[row][col] = "ㅡ";
+                }else{
+                    whenBlackAttack();
+                    whenWhiteAttack();
+                }
+            }
+
+        }else{
+            wrongMove();
+        }
+    }
+    public static void
     public static void whenBlackAttack() {
         if (chessBoard[row][col].contains(white) && chessBoard[moveRow][moveCol].contains(black)) {
             chessBoard[moveRow][moveCol] = chessBoard[row][col];

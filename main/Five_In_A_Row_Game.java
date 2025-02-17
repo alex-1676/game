@@ -14,14 +14,18 @@ public class Five_In_A_Row_Game extends db {
     static int x = 0;
     static int y = 0;
     static boolean realFlag = true;
-    static String player1 = "";
-    static String player2 = "";
+    static String player1;
+    static String player2;
     public static void omogGame() throws IOException {
         boardspace();
-        inputId();
+        login(true);
+        printBoard();
+       //점수 초기화
+        AnyPang_Game.totalScore[1] = 0;
+        realFlag = true;
        while(realFlag){
 
-           printBoard();
+//
            inputPlayer();
            printBoard();
            checkWinner();
@@ -31,12 +35,6 @@ public class Five_In_A_Row_Game extends db {
            changePlayer();
        }
 
-    }
-    public static void inputId(){
-        System.out.println("첫번째 플레이어의 ID를 입력하세요");
-        player1 = sc.nextLine();
-        System.out.println("두번째 플레이어의 ID를 입력하세요");
-        player2 = sc.nextLine();
     }
 
     public static void inputPlayer() {
@@ -102,7 +100,7 @@ public class Five_In_A_Row_Game extends db {
             System.out.println("  ----------------------------------------------------------------------------------");
         }
     }
-    public static void checkWinner(){
+    public static void checkWinner() throws IOException{
 
         int rowRightCnt = 1;
         int rowLeftCnt = 1;
@@ -163,16 +161,19 @@ public class Five_In_A_Row_Game extends db {
             }
             System.out.println("\n" + border);
             System.out.println("\033[1;33m" + "          🏆 축하합니다! 🏆          " + "\033[0m");
-           if(nowPlayer.equals(lightRed + "X"+reset)) {
+           if(nowPlayer.equals(lightRed + "X" + reset)) {
                System.out.println("\033[1;32m" + "       🎉 승자는: " +player1+ nowPlayer + " 🎉" + "\033[0m");
+               AnyPang_Game.totalScore[1] += 4;
+               updateScore(2,player1,true);
            }else{
                System.out.println("\033[1;32m" + "       🎉 승자는: " +player2+ nowPlayer + " 🎉" + "\033[0m");
+               AnyPang_Game.totalScore[1] += 4;
+               updateScore(2,player2,true);
            }
+
            System.out.println("\033[1;34m" + "        게임이 종료되었습니다!        " + "\033[0m");
-            System.out.println(border);
+           System.out.println(border);
             realFlag = false; // 게임 종료
         }
     }
-
-
 }

@@ -1,7 +1,5 @@
 package main;
 
-import main.AnyPang_Game;
-import main.Five_In_A_Row_Game;
 
 import java.io.*;
 import java.util.*;
@@ -23,6 +21,8 @@ public class db {
     static int[][] itemInfo = new int[10][4];
     //로그인되어있는 id를 멤버 변수로
     static String loginId;
+    //오목게임이나 체스 게임 같이 둘이서 같이 하는거떄문에 멤버 변수 선언
+    static String gameId2;
 
     //아이템별 구매할떄 필요한 코인 개수
     static int[] numberOfCoins = {3,4,5};
@@ -31,19 +31,61 @@ public class db {
     static int flag = 0;
     static int index = 0;  //로그인시 필요한 정보 인덱스 접근을 위해 선언
     static boolean openMenuflag = true;
-    public static void main(String[] args) throws IOException {
-        int menuNum = 0;
 
-        while (!stop) {
-            if (openMenuflag) {
-                openMenuflag = false;
-                if (login())
-                    continue;
+    //Thread 부분
+    static boolean isTimeout  = false;
+    static boolean threadOut = false;
+
+
+    //쓰레드 부분
+    public static void threadGO(){
+        Thread timerThread = new Thread(new Runnable() {
+            public void run() {
+                threadOut = false ;
+                try {
+                    int i = 0;
+                    while (!threadOut){
+                        Thread.sleep(400); // 0.4초 대기
+                        i += 10;
+                        if (i == 1000)
+                            break ;
+                    }
+                    isTimeout = true; // 타임아웃 설정
+                    System.out.println("타이머가 종료되었습니다.");
+                } catch (InterruptedException ignored) {}
             }
-            openMenu();
-        }
+        });
+        System.out.println("제한시간은 40초 입니다. 화이팅!!!!!!!!!!");
+        timerThread.start();
     }
 
+    public static String inputProcessString(){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String input = null;
+        while (!isTimeout) {
+            try {
+                if (reader.ready()) { // 입력이 있는 경우 (엔터를 치는 경우 버퍼에 입력된다 하지만 엔터를 치지 않은 경우 ready는 false다
+                    input = reader.readLine();
+                    break;
+                }
+            } catch (IOException ignored) {}
+        }
+        return input;
+    }
+    public static int inputProcessInt(){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+        int result = 1004;
+        while (!isTimeout) {
+            try {
+                if (reader.ready()) { // 입력이 있는 경우 (엔터를 치는 경우 버퍼에 입력된다 하지만 엔터를 치지 않은 경우 ready는 false다
+                    result = Integer.parseInt(reader.readLine());
+                    break;
+                }
+            } catch (IOException ignored) {}
+        }
+        return result;
+    }
     //txt파일에서 회원 아이디 찾는 메서드
     public static boolean searchIdOrPassword(String id,String pwd,boolean flag) throws IOException{
         BufferedReader br = new BufferedReader(new FileReader(file));
@@ -66,7 +108,7 @@ public class db {
         br.close();
         return true;
     }
-    public static boolean login() throws IOException {
+    public static boolean login(boolean opponentIdCheck) throws IOException {
         //파일 존재 여부 체크 및 생성
         if (!file.exists()){
             file.createNewFile();
@@ -76,10 +118,28 @@ public class db {
 
         int cntPwd = 0;
         //로그인 부터
-        System.out.println("아이디를 입력하세요.");
-        String name = in.nextLine();
         //id를 멤버 변수로
-        loginId = name;
+        String name;
+        if (opponentIdCheck) {
+            while(true){
+                System.out.println("상대방 아이디를 입력하세요.");
+                name = in.nextLine();
+                if (name.equals(loginId)) {
+                    System.out.println(" 로그인된 아이디와 같은 아이디 입니다.");
+                    continue;
+                }
+                gameId2 = name;
+                Five_In_A_Row_Game.player2 = gameId2;
+                break ;
+            }
+
+
+        }else{
+            System.out.println("아이디를 입력하세요.");
+            name = in.nextLine();
+            loginId = name;
+            Five_In_A_Row_Game.player1 = loginId;
+        }
 
         //텍스트 파일에 아이디,비밀번호,뿌요점수,오목점수,추가게임점수,코인개수,폭탄아이템개수,십자가아이템개수,선택숫자삭제아이템개수
         //id 검색 + 회원가입부분
@@ -215,7 +275,7 @@ public class db {
             break ;
         }
     }
-    public static void updateScore(int gameNum) throws IOException{
+    public static void updateScore(int gameNum, String updateId, boolean oppenentCheck) throws IOException{
         StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(new FileReader(file));
 
@@ -227,18 +287,23 @@ public class db {
         String str;
         while ((str = br.readLine()) != null) {
             String[] part = str.split(",");
-            if (part[0].equals(loginId)) {
+            if (part[0].equals(updateId)) {
 
                 // 아이템 개수 수정
                 int score = Integer.parseInt(part[gameNum + 1]);
                 //아이템 개수 체크해서 사용못하도록
-                if (main.AnyPang_Game.totalScore[gameNum - 1] <= score){
-                    br.close();
-                    return  ;
+                if (oppenentCheck){
+                    AnyPang_Game.totalScore[gameNum - 1] += score;
+                }else{
+                    if (AnyPang_Game.totalScore[gameNum - 1] <= score){
+                        br.close();
+                        return  ;
+                    }
                 }
-                part[gameNum + 1] = String.valueOf(main.AnyPang_Game.totalScore[gameNum - 1]);
+
+                part[gameNum + 1] = String.valueOf(AnyPang_Game.totalScore[gameNum - 1]);
                 System.out.println(part[gameNum + 1]);
-                sb.append(loginId).append(",")
+                sb.append(updateId).append(",")
                         .append(part[1]).append(",")
                         .append(part[2]).append(",")
                         .append(part[3]).append(",")
@@ -313,9 +378,9 @@ public class db {
         if (menuNum == 1){
             return 1;
         }else if (menuNum == 2){
+            in.nextLine();
             Five_In_A_Row_Game.omogGame();
             //이부분은 점수 오목게임 로그인 방식 바꾸고 나서 들어가야될듯 위치가 여기가 아닐수도 있음
-            updateScore(menuNum);
         }else if (menuNum == 3){
             ptrCoin();
         }else if (menuNum == 4){
@@ -370,20 +435,26 @@ public class db {
         bw.close();
         return false;
     }
-    public static void item(int choiceItem) throws IOException {
+    public static int item(int choiceItem) throws IOException {
+
+        int temp = choiceItem;
         // 회원별 아이템이 얼마나 남아있는지 에 따라서 밑에 아이템 기능들이 작동하도록 해야한다.
         while(true){
             if (updateItem(choiceItem)){
                 System.out.println("해당 아이템은 사용할수 있는 개수가 없습니다. 아이템 숫자를 다시 적어주세요 아이템을 사용하기 싫다면 999을 적으세요");
-                choiceItem = in.nextInt();
+                choiceItem = inputProcessInt();
+                if (choiceItem == 1004)
+                    return 1004;
+                System.out.println(choiceItem + "------------------------");
                 if (choiceItem == 999)
-                    return ;
+                    return 0;
+
             }else{
                 break ;
             }
         }
         // 폭탄 : 해당범위 숫자 0으로 제거 (랜덤범위로)
-        if (choiceItem == 1){
+        if (temp == 1){
             //예외 처리
 
             int col = rand.nextInt(7);
@@ -393,36 +464,37 @@ public class db {
                 for (int j = 0; j < parentSecond[i].length; j++) {
                     if ((j > col - 2 && j < col + 2) && (i > row  - 2 && i < row + 2)) {
                         // 색깔 표시를 위해서
-                        main.AnyPang_Game.second[i][j] = mark;
+                        AnyPang_Game.second[i][j] = mark;
                     }
                 }
             }
             // 지맘대로 십자가 : 가로 세로 한줄 전체를 랜덤한 위치에 모두 0으로 만들어준다.
-        }else if (choiceItem == 2){
+        }else if (temp == 2){
             int col = rand.nextInt(7);
             int row = rand.nextInt(7);
             for (int i = 0; i < parentSecond.length; i++) {
                 for (int j = 0; j < parentSecond[i].length; j++) {
                     if (j == col || i == row) {
-                        main.AnyPang_Game.second[i][j] = 0;
+                        AnyPang_Game.second[i][j] = 0;
                     }
                 }
             }
             // 일심동체 :선택한 숫자만 모두 없애는 기능
-        }else if (choiceItem == 3){
+        }else if (temp == 3){
             System.out.println("삭제하고 싶은 캐릭터를 고르세요");
             System.out.println("(1)"+"🐸"+" (2)"+"🐶"+" (3)"+"🦄"+" (4)"+"🦁"+" (5)"+"🐯"+" (6)"+"🐰"+" (7)"+"🐍"+" (8)"+"🐗"+" (9)"+"🐛"+" (10)"+"🍄"+" (11)"+"🔥");
             int deleteNum = in.nextInt();
             if (deleteNum < 12 && deleteNum > 0){
                 for (int i = 0; i  <  parentSecond.length; i++) {
                     for (int j = 0; j < parentSecond[i].length; j++) {
-                        if(main.AnyPang_Game.second[i][j] == deleteNum){
-                            main.AnyPang_Game.second[i][j] = 0;
+                        if(AnyPang_Game.second[i][j] == deleteNum){
+                            AnyPang_Game.second[i][j] = 0;
                         }
                     }
                 }
             }
         }
+        return 0;
     }
 
 }
